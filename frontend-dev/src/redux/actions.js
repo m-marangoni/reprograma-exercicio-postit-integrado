@@ -1,14 +1,14 @@
 import axios from 'axios'
 
 const configuracoes = {
-  baseURL: 'https://reprograma-postit-api.herokuapp.com'
+  baseURL: 'http://localhost:5000/api'
 }
 
 const json = localStorage.getItem('usuario')
 if (json) {
   const usuario = JSON.parse(json)
   configuracoes.headers = {
-    'Authorization': usuario.token
+    'x-access-token': usuario.token
   }
 }
 
@@ -16,11 +16,15 @@ const api = axios.create(configuracoes)
 
 export function logaUsuario(dados) {
   return (dispatch) => {
+    const json = {
+      email: dados.email,
+      password: dados.senha
+    }
     api
-      .post('/login', dados)
+      .post('/login', json)
       .then(response => {
-        api.defaults.headers.common['Authorization'] = response.data.usuario.token
-        dispatch({ type: 'LOGA_USUARIO', dados: response.data.usuario })
+        api.defaults.headers.common['x-access-token'] = response.data.token
+        dispatch({ type: 'LOGA_USUARIO', dados: response.data })
       })
       .catch(error => {
         console.error(error)
@@ -40,10 +44,14 @@ export function deslogaUsuario() {
 
 export function cadastraPostit(dados) {
   return (dispatch) => {
+    const json = {
+      title: dados.titulo,
+      description: dados.texto
+    }
     api
-      .post('/postits', dados)
+      .post('/postits', json)
       .then(response => {
-        dados.id = response.data.id
+        dados.id = response.data._id
         dispatch({ type: 'CADASTRA_POSTIT', dados })
       })
   }
@@ -52,8 +60,12 @@ export function cadastraPostit(dados) {
 export function alteraPostit(dados) {
   return (dispatch) => {
     const url = `/postits/${dados.id}`
+    const json = {
+      title: dados.titulo,
+      description: dados.texto
+    }
     api
-      .put(url, dados)
+      .put(url, json)
       .then(() => {
         dispatch({ type: 'ALTERA_POSTIT', dados })
       })
@@ -76,7 +88,12 @@ export function listaPostits() {
     api
       .get('/postits')
       .then(response => {
-        dispatch({ type: 'LISTA_POSTITS', dados: response.data.postits })
+        const dados = response.data.map(item => ({
+          id: item._id,
+          titulo: item.title,
+          texto: item.description
+        }))
+        dispatch({ type: 'LISTA_POSTITS', dados })
       })
   }
 }
